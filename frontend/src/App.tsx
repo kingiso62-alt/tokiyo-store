@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Suspense, lazy, useEffect } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { MainLayout } from "./layout/MainLayout";
 import { AdminLayout } from "./layout/AdminLayout";
 import { ProtectedRoute } from "./components/ProtectedRoute";
@@ -59,9 +59,50 @@ const queryClient = new QueryClient();
 // Loading Fallback
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-gray-50">
-    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#6777ef]"></div>
   </div>
 );
+
+// Global Maintenance Check Wrapper
+function MaintenanceWrapper({ children }: { children: React.ReactNode }) {
+  const [isMaintenance, setIsMaintenance] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Skip maintenance check for admin routes so admins can still login and manage
+    if (window.location.pathname.startsWith('/admin')) {
+      setLoading(false);
+      return;
+    }
+
+    fetch('http://localhost:5000/api/settings/maintenance')
+      .then(res => res.json())
+      .then(data => {
+        setIsMaintenance(data.maintenance_mode);
+        setLoading(false);
+      })
+      .catch(() => {
+        // If fetch fails, let them through (could be offline mode, etc)
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) return <PageLoader />;
+
+  if (isMaintenance) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-4 text-center">
+        <h1 className="text-3xl md:text-5xl font-black text-gray-900 mb-4 tracking-tighter uppercase">We'll be back soon!</h1>
+        <p className="text-gray-600 max-w-md text-lg mb-8">
+          The website is currently undergoing scheduled maintenance. / Website-ka ayaa dib u habeyn iyo horumarin lagu wadaa.
+        </p>
+        <p className="text-sm font-bold text-gray-400">Tokiyo Store Team</p>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+}
 
 function App() {
   useEffect(() => {
@@ -72,8 +113,9 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ErrorBoundary>
         <BrowserRouter>
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
+          <MaintenanceWrapper>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
             {/* Admin Routes */}
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<AdminDashboard />} />
@@ -144,11 +186,11 @@ function App() {
             <Route path="/admin-login" element={<AdminLogin />} />
 
             {/* Wildcard 404 Route */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Suspense>
-      </BrowserRouter>
-     </ErrorBoundary>
+            </Routes>
+            </Suspense>
+          </MaintenanceWrapper>
+        </BrowserRouter>
+      </ErrorBoundary>
     </QueryClientProvider>
   );
 }

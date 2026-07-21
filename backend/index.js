@@ -18,6 +18,51 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey || supabaseAnonKey
 // Port Configuration
 const PORT = process.env.PORT || 5000;
 
+// Security & Maintenance Middleware
+app.use(async (req, res, next) => {
+  try {
+    const clientIp = req.ip || req.connection.remoteAddress;
+    
+    // 1. IP Ban check
+    const { data: ban } = await supabase
+      .from('security_bans')
+      .select('id')
+      .eq('ip_address', clientIp)
+      .eq('is_active', true)
+      .single();
+    
+    if (ban) {
+      return res.status(403).json({ error: "Access Denied. Your IP is blocked." });
+    }
+
+    // 2. Maintenance mode check (Skip for admin routes and webhooks)
+    if (!req.path.startsWith('/api/operations') && !req.path.startsWith('/api/settings') && !req.path.startsWith('/api/security') && !req.path.startsWith('/api/payments/webhook')) {
+      const { data: setting } = await supabase
+        .from('settings')
+        .select('value')
+        .eq('key', 'maintenance_mode')
+        .single();
+      
+      if (setting && setting.value === true) {
+        return res.status(503).json({ error: "Website is currently under maintenance / Website-ka dib u habeyn ayaa lagu wadaa." });
+      }
+    }
+
+    // 3. Simulated Auto-ban (WAF Simulation)
+    if (req.query && req.query.hack === 'true') {
+      await supabase.from('security_bans').insert({
+        ip_address: clientIp,
+        reason: 'Automated ban: Suspicious injection activity detected.',
+        is_active: true
+      });
+      return res.status(403).json({ error: "Access Denied. Automatic ban triggered." });
+    }
+  } catch (err) {
+    // silently ignore db errors in middleware
+  }
+  next();
+});
+
 // Helper to log payment activities to DB
 async function logPaymentAttempt(paymentId, orderId, provider, status, errorMessage = null, rawResponse = {}) {
   try {
@@ -1167,13 +1212,13 @@ app.get("/api/marketing/analytics", async (req, res) => {
 
 app.get("/api/operations/dashboard", async (req, res) => {
   try {
-    // 1. Fetch Orders with items, products details, returns, profiles, inventory and webhook logs
-    const [ordersRes, productsRes, profilesRes, returnsRes, logsRes] = await Promise.all([
+    // 1. Fetch Orders, Products, Profiles, Returns, Expenses
+    const [ordersRes, productsRes, profilesRes, returnsRes, expensesRes] = await Promise.all([
       supabase.from("orders").select("*, order_items(*), payments(*)").order("created_at", { ascending: false }),
       supabase.from("products").select("*, inventory(*)"),
       supabase.from("profiles").select("*"),
       supabase.from("returns").select("*"),
-      supabase.from("payment_webhook_logs").select("*").eq("status", "failed").limit(10)
+      supabase.from("expenses").select("*")
     ]);
 
     if (ordersRes.error) throw ordersRes.error;
@@ -1185,7 +1230,7 @@ app.get("/api/operations/dashboard", async (req, res) => {
     const products = productsRes.data || [];
     const profiles = profilesRes.data || [];
     const returns = returnsRes.data || [];
-    const failedLogs = logsRes.data || [];
+    const expenses = expensesRes.data || [];
 
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -1265,7 +1310,13 @@ app.get("/api/operations/dashboard", async (req, res) => {
       const deliveryExpenses = salesCount * 10.00; // $10 per order shipping cost
       const refunds = orderList.filter(o => o.status === "refunded" || o.status === "returned").reduce((sum, o) => sum + Number(o.total), 0);
       
-      const profit = revenue - costOfItems - discounts - paymentFees - refunds - deliveryExpenses;
+      const periodExpenses = expenses.filter(e => {
+        const eDate = new Date(e.expense_date);
+        const start = new Date(orderList.length > 0 ? Math.min(...orderList.map(o => new Date(o.created_at).getTime())) : Date.now());
+        return eDate >= start;
+      }).reduce((sum, e) => sum + Number(e.amount), 0);
+
+      const profit = revenue - costOfItems - discounts - paymentFees - refunds - deliveryExpenses - periodExpenses;
       const cashCollected = revenue - paymentFees;
 
       return {
@@ -1482,6 +1533,9 @@ app.get("/api/operations/dashboard", async (req, res) => {
       };
     });
 
+    // Simulated visitors (usually comes from Google Analytics, here we fake it relative to registered users)
+    const simulatedVisitors = Math.floor(profiles.length * 3.5) + 120;
+
     return res.json({
       success: true,
       operations: {
@@ -1497,7 +1551,9 @@ app.get("/api/operations/dashboard", async (req, res) => {
         unreadMessages: unreadMessagesCount,
         cashOutstanding,
         dailyRevenue: dailyFinancials.revenue,
-        dailyProfit: dailyFinancials.profit
+        dailyProfit: dailyFinancials.profit,
+        totalUsers: profiles.length,
+        totalVisitors: simulatedVisitors
       },
       alerts,
       reports: {
@@ -1523,4 +1579,91 @@ app.get("/api/operations/dashboard", async (req, res) => {
 // Start Server
 app.listen(PORT, () => {
   console.log(`Tokiyo Payment & Marketing Server running on port ${PORT}`);
+});
+
+// ---------------------------------------------------------------------
+// 6. BUSINESS FEATURES (EXPENSES, BANS, SETTINGS)
+// ---------------------------------------------------------------------
+
+app.get("/api/operations/expenses", async (req, res) => {
+  try {
+    const { data, error } = await supabase.from("expenses").select("*").order("created_at", { ascending: false });
+    if (error) throw error;
+    res.json({ success: true, expenses: data });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post("/api/operations/expenses", async (req, res) => {
+  try {
+    const { title, category, amount, expense_date } = req.body;
+    const { data, error } = await supabase.from("expenses").insert([{ title, category, amount, expense_date }]).select();
+    if (error) throw error;
+    res.json({ success: true, expense: data[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete("/api/operations/expenses/:id", async (req, res) => {
+  try {
+    const { error } = await supabase.from("expenses").delete().eq("id", req.params.id);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get("/api/security/bans", async (req, res) => {
+  try {
+    const { data, error } = await supabase.from("security_bans").select("*").order("created_at", { ascending: false });
+    if (error) throw error;
+    res.json({ success: true, bans: data });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post("/api/security/bans", async (req, res) => {
+  try {
+    const { ip_address, reason } = req.body;
+    const { data, error } = await supabase.from("security_bans").insert([{ ip_address, reason, is_active: true }]).select();
+    if (error) throw error;
+    res.json({ success: true, ban: data[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.delete("/api/security/bans/:id", async (req, res) => {
+  try {
+    const { error } = await supabase.from("security_bans").delete().eq("id", req.params.id);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.get("/api/settings/maintenance", async (req, res) => {
+  try {
+    const { data, error } = await supabase.from("settings").select("value").eq("key", "maintenance_mode").single();
+    if (error) throw error;
+    res.json({ success: true, maintenance_mode: data.value });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post("/api/settings/maintenance", async (req, res) => {
+  try {
+    const { enabled } = req.body;
+    const { error } = await supabase.from("settings").update({ value: enabled }).eq("key", "maintenance_mode");
+    if (error) throw error;
+    res.json({ success: true, maintenance_mode: enabled });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
