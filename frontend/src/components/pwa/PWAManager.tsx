@@ -1,7 +1,15 @@
 import { useState, useEffect } from "react";
-import { useRegisterSW } from "virtual:pwa-register/react";
 import { Download, WifiOff, RefreshCw, X, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
+
+// Fallback stub for environments where vite-plugin-pwa virtual module is unavailable
+function useRegisterSW() {
+  return {
+    offlineReady: [false, (_: boolean) => {}] as [boolean, (v: boolean) => void],
+    needRefresh: [false, (_: boolean) => {}] as [boolean, (v: boolean) => void],
+    updateServiceWorker: async (_reloadPage?: boolean) => {},
+  };
+}
 
 export function PWAManager() {
   const {

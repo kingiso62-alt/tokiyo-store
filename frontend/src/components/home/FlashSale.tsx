@@ -137,17 +137,16 @@ export function FlashSale() {
 
                   {/* Circular Add to Cart Button (Bottom Right of Image) */}
                   <button 
-                    onClick={(e) => { 
-                      e.preventDefault(); 
-                      addItem({ 
-                        id: product.id, 
-                        name: product.name, 
-                        price: product.price, 
-                        image: product.image, 
-                        quantity: 1, 
-                        category: product.category 
-                      }); 
-                    }}
+                      onClick={(e) => { 
+                        e.preventDefault(); 
+                        addItem({ 
+                          id: product.id, 
+                          name: product.name, 
+                          price: product.price, 
+                          image: product.image, 
+                          quantity: 1
+                        }); 
+                      }}
                     className="absolute bottom-3 right-3 z-10 w-8.5 h-8.5 rounded-full bg-black/60 hover:bg-[#D4AF37] text-white hover:text-black flex items-center justify-center border border-zinc-800 hover:border-transparent shadow-lg transition-all hover:scale-105 active:scale-95 cursor-pointer"
                     aria-label="Add to Cart"
                   >

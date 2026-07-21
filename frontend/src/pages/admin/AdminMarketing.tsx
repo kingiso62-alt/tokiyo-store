@@ -5,7 +5,8 @@ import { supabase } from "@/lib/supabase";
 import { 
   Mail, MessageSquare, Smartphone, Send, Plus, Calendar, Clock,
   Trash2, AlertCircle, CheckCircle, RefreshCw, BarChart3, Play,
-  Users, Gift, Award, Settings, Sparkles, Percent, Database, Globe, EyeOff
+  Users, Gift, Award, Settings, Sparkles, Percent, Database, Globe, EyeOff,
+  UserCheck, ShoppingBag, Smile
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -638,7 +639,7 @@ export function AdminMarketing() {
                 <p className="text-xs text-gray-400 mt-1">Real-time target segment sizing based on orders history, checkout carts, and view activities.</p>
               </div>
               <button
-                onClick={refetchSegments}
+                onClick={() => refetchSegments()}
                 className="p-2 border rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
                 title="Refresh Segments size"
               >
