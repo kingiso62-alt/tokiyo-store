@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/lib/supabase";
-import { Copy, Check, Save, User, Phone, Image, Award, AlertCircle } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { fetchMyOrders } from "@/lib/api";
+import { Copy, Check, Save, User, Phone, Image, Award, AlertCircle, Package, Clock, Truck, MapPin, XCircle } from "lucide-react";
 
 export function Profile() {
   const { user, profile, setProfile, signOut } = useAuthStore();
@@ -31,6 +32,13 @@ export function Profile() {
       setAvatarUrl(user.user_metadata?.avatar_url || user.user_metadata?.picture || "");
     }
   }, [profile, user]);
+
+  // Fetch user orders
+  const { data: myOrders = [], isLoading: isLoadingOrders } = useQuery({
+    queryKey: ["my_orders", user?.id],
+    queryFn: () => fetchMyOrders(user!.id),
+    enabled: !!user?.id
+  });
 
   // Handle Profile Update
   const handleUpdate = async (e: React.FormEvent) => {
@@ -262,6 +270,94 @@ export function Profile() {
             </div>
 
           </form>
+
+          </form>
+
+          {/* My Orders Section */}
+          <div className="border-t border-zinc-900 pt-6">
+            <h2 className="text-sm font-extrabold uppercase tracking-[0.2em] text-[#D4AF37] mb-6 flex items-center gap-2">
+              <Package className="w-4 h-4" /> My Orders / Dalabaadkaaga
+            </h2>
+            
+            {isLoadingOrders ? (
+              <div className="text-zinc-500 text-xs text-center py-8 animate-pulse">Loading orders...</div>
+            ) : myOrders.length === 0 ? (
+              <div className="text-zinc-500 text-xs text-center py-8 border border-zinc-900 rounded-xl bg-zinc-950/30">
+                You haven't placed any orders yet. / Wali wax dalab ah maadan samayn.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {myOrders.map((order: any) => {
+                  let statusColor = "text-zinc-500 border-zinc-800 bg-zinc-900";
+                  let statusIcon = <Clock className="w-3.5 h-3.5" />;
+                  
+                  if (order.status === "delivered") {
+                    statusColor = "text-green-500 border-green-900/50 bg-green-950/20";
+                    statusIcon = <Check className="w-3.5 h-3.5" />;
+                  } else if (order.status === "cancelled" || order.status === "returned") {
+                    statusColor = "text-red-500 border-red-900/50 bg-red-950/20";
+                    statusIcon = <XCircle className="w-3.5 h-3.5" />;
+                  } else if (order.status === "shipped" || order.status === "out_for_delivery") {
+                    statusColor = "text-[#3abaf4] border-[#3abaf4]/30 bg-[#3abaf4]/10";
+                    statusIcon = <Truck className="w-3.5 h-3.5" />;
+                  } else if (order.status === "processing" || order.status === "packed") {
+                    statusColor = "text-[#D4AF37] border-[#D4AF37]/30 bg-[#D4AF37]/10";
+                    statusIcon = <Package className="w-3.5 h-3.5" />;
+                  } else {
+                    statusColor = "text-orange-400 border-orange-900/50 bg-orange-950/20";
+                  }
+
+                  return (
+                    <div key={order.id} className="border border-zinc-900 rounded-xl bg-[#0a0a0a] overflow-hidden">
+                      <div className="p-4 sm:p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-3">
+                            <span className="font-bold text-white text-sm">#{order.order_number}</span>
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider border ${statusColor}`}>
+                              {statusIcon}
+                              {order.status.replace(/_/g, ' ')}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-zinc-500 font-medium">
+                            {new Date(order.created_at).toLocaleDateString("en-US", { 
+                              year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+                            })}
+                          </p>
+                        </div>
+                        <div className="text-left sm:text-right w-full sm:w-auto">
+                          <div className="text-[#D4AF37] font-bold">${Number(order.total || 0).toFixed(2)}</div>
+                          <div className="text-[10px] text-zinc-500 font-semibold uppercase">{order.order_items?.length || 0} Items</div>
+                        </div>
+                      </div>
+                      
+                      {/* Items Preview */}
+                      {order.order_items && order.order_items.length > 0 && (
+                        <div className="border-t border-zinc-900 bg-zinc-950 p-4">
+                          <div className="flex flex-wrap gap-3">
+                            {order.order_items.map((item: any) => (
+                              <div key={item.id} className="flex items-center gap-2 bg-[#040404] border border-zinc-800 rounded-lg p-2 pr-4">
+                                <div className="h-8 w-8 bg-zinc-900 rounded flex items-center justify-center text-[10px] font-bold text-zinc-600 border border-zinc-800">
+                                  x{item.quantity}
+                                </div>
+                                <div>
+                                  <p className="text-[10px] font-bold text-zinc-300 max-w-[120px] truncate" title={item.product_name}>
+                                    {item.product_name}
+                                  </p>
+                                  <p className="text-[9px] text-zinc-600 font-semibold">
+                                    {[item.color, item.size].filter(Boolean).join(" / ")}
+                                  </p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
 
           {/* PWA Notifications simulated card */}
           <div className="border-t border-zinc-900 pt-6">
