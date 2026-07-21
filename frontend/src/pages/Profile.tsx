@@ -271,8 +271,6 @@ export function Profile() {
 
           </form>
 
-          </form>
-
           {/* My Orders Section */}
           <div className="border-t border-zinc-900 pt-6">
             <h2 className="text-sm font-extrabold uppercase tracking-[0.2em] text-[#D4AF37] mb-6 flex items-center gap-2">
