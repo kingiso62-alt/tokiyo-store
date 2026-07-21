@@ -158,7 +158,7 @@ export function AdminOrders() {
     { 
       key: "total", 
       header: "Total",
-      render: (row: any) => <div className="font-bold">${row.total.toFixed(2)}</div>
+      render: (row: any) => <div className="font-bold">${Number(row.total || 0).toFixed(2)}</div>
     },
     {
       key: "payment",
@@ -241,10 +241,10 @@ export function AdminOrders() {
                     </div>
                   ))}
                   <div className="pt-4 border-t border-gray-200 text-sm space-y-1.5 text-right">
-                    <p className="text-gray-500">Subtotal: <strong className="text-gray-900 font-bold">${selectedOrder.subtotal.toFixed(2)}</strong></p>
-                    <p className="text-gray-500">Shipping: <strong className="text-gray-900 font-bold">${selectedOrder.shipping_fee.toFixed(2)}</strong></p>
-                    <p className="text-gray-500">Discounts: <strong className="text-red-600 font-bold">-${selectedOrder.discount_amount.toFixed(2)}</strong></p>
-                    <p className="text-lg font-extrabold text-gray-900 border-t pt-1.5">Total: ${selectedOrder.total.toFixed(2)}</p>
+                    <p className="text-gray-500">Subtotal: <strong className="text-gray-900 font-bold">${Number(selectedOrder.subtotal || 0).toFixed(2)}</strong></p>
+                    <p className="text-gray-500">Shipping: <strong className="text-gray-900 font-bold">${Number(selectedOrder.shipping_fee || 0).toFixed(2)}</strong></p>
+                    <p className="text-gray-500">Discounts: <strong className="text-red-600 font-bold">-${Number(selectedOrder.discount_total || selectedOrder.discount_amount || 0).toFixed(2)}</strong></p>
+                    <p className="text-lg font-extrabold text-gray-900 border-t pt-1.5">Total: ${Number(selectedOrder.total || 0).toFixed(2)}</p>
                   </div>
                 </div>
               </div>
@@ -441,11 +441,11 @@ export function AdminOrders() {
                     ))}
                   </tbody>
                 </table>
-                <div className="pt-2 text-right text-xs space-y-1.5">
-                  <p className="text-gray-500">Subtotal: <strong className="text-gray-900 font-bold">${selectedOrder.subtotal.toFixed(2)}</strong></p>
-                  <p className="text-gray-500">Shipping: <strong className="text-gray-900 font-bold">${selectedOrder.shipping_fee.toFixed(2)}</strong></p>
-                  <p className="text-gray-500">Discounts: <strong className="text-red-600 font-bold">-${selectedOrder.discount_amount.toFixed(2)}</strong></p>
-                  <p className="text-base font-extrabold text-gray-900 border-t pt-1.5">Invoice Total: ${selectedOrder.total.toFixed(2)}</p>
+                <div className="text-right space-y-1.5 text-sm">
+                  <p className="text-gray-500">Subtotal: <strong className="text-gray-900 font-bold">${Number(selectedOrder.subtotal || 0).toFixed(2)}</strong></p>
+                  <p className="text-gray-500">Shipping: <strong className="text-gray-900 font-bold">${Number(selectedOrder.shipping_fee || 0).toFixed(2)}</strong></p>
+                  <p className="text-gray-500">Discounts: <strong className="text-red-600 font-bold">-${Number(selectedOrder.discount_total || selectedOrder.discount_amount || 0).toFixed(2)}</strong></p>
+                  <p className="text-base font-extrabold text-gray-900 border-t pt-1.5">Invoice Total: ${Number(selectedOrder.total || 0).toFixed(2)}</p>
                 </div>
                 <div className="flex justify-end pt-4 border-t gap-2">
                   <Button onClick={() => window.print()} className="bg-black text-white hover:bg-gray-800 text-xs px-5 h-10 gap-1.5 uppercase font-bold tracking-wider">

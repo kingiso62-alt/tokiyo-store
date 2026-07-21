@@ -228,11 +228,11 @@ BEGIN
     WHERE i.id = v_inv_id;
 
     INSERT INTO order_items (
-      order_id, product_id, inventory_id,
+      order_id, product_id, inventory_id, product_name,
       quantity, unit_price, total_price,
       product_snapshot
     ) VALUES (
-      v_order_id, v_inventory.product_id, v_inv_id,
+      v_order_id, v_inventory.product_id, v_inv_id, v_inventory.title,
       v_qty, v_inventory.price, v_inventory.price * v_qty,
       jsonb_build_object(
         'title', v_inventory.title,

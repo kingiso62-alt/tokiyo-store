@@ -1576,10 +1576,6 @@ app.get("/api/operations/dashboard", async (req, res) => {
   }
 });
 
-// Start Server
-app.listen(PORT, () => {
-  console.log(`Tokiyo Payment & Marketing Server running on port ${PORT}`);
-});
 
 // ---------------------------------------------------------------------
 // 6. BUSINESS FEATURES (EXPENSES, BANS, SETTINGS)
@@ -1666,4 +1662,9 @@ app.post("/api/settings/maintenance", async (req, res) => {
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
+});
+
+// Start Server
+app.listen(PORT, () => {
+  console.log(`Tokiyo Payment & Marketing Server running on port ${PORT}`);
 });
