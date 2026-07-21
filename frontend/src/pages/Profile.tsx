@@ -43,14 +43,14 @@ export function Profile() {
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .upsert({
-          id: user.id,
+        .update({
           first_name: firstName,
           last_name: lastName,
           phone: phone,
           avatar_url: avatarUrl,
           updated_at: new Date().toISOString()
         })
+        .eq("id", user.id)
         .select()
         .single();
 
