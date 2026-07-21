@@ -10,7 +10,7 @@ import type { Product } from "@/store/useWishlistStore";
 import { Grid, List } from "lucide-react";
 
 export function Shop() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
@@ -21,6 +21,7 @@ export function Shop() {
   const sizeQuery = searchParams.get('size');
   const brandQuery = searchParams.get('brand');
   const ratingQuery = Number(searchParams.get('rating')) || 0;
+  const sortQuery = searchParams.get('sort') || 'newest';
 
   const { data: dbProducts, isLoading, isError } = useQuery({
     queryKey: ['products'],
@@ -45,6 +46,8 @@ export function Shop() {
       rating: Number(p.rating) || 0,
       sizes: sizesList,
       colors: colorsList.map(c => c.toLowerCase()),
+      created_at: p.created_at || new Date().toISOString(),
+      reviews_count: Number(p.reviews_count) || 0,
       tag: p.is_trending ? "Trending" : p.is_featured ? "Featured" : ""
     };
   });
@@ -82,6 +85,21 @@ export function Shop() {
     return true;
   });
 
+  // Sort products
+  const sortedProducts = [...filteredProducts].sort((a, b) => {
+    if (sortQuery === 'price-asc') {
+      return a.price - b.price;
+    }
+    if (sortQuery === 'price-desc') {
+      return b.price - a.price;
+    }
+    if (sortQuery === 'popular') {
+      return b.reviews_count - a.reviews_count;
+    }
+    // Default newest
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
+
   return (
     <div className="bg-[#040404] min-h-screen text-white pt-32 pb-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -93,7 +111,7 @@ export function Shop() {
               {searchQuery ? `Search: "${searchQuery}"` : categoryQuery ? `${categoryQuery}` : 'ALL PRODUCTS'}
             </h1>
             <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest">
-              {isLoading ? "Loading..." : `Showing ${filteredProducts.length} results`}
+              {isLoading ? "Loading..." : `Showing ${sortedProducts.length} results`}
             </p>
           </div>
         </div>
@@ -130,7 +148,15 @@ export function Shop() {
                 </div>
                 
                 {/* Select sort */}
-                <select className="bg-zinc-950 border border-zinc-800 text-[10px] font-extrabold uppercase tracking-widest py-2.5 px-4 rounded-lg outline-none focus:border-[#D4AF37] text-white">
+                <select 
+                  value={sortQuery}
+                  onChange={(e) => {
+                    const newParams = new URLSearchParams(searchParams);
+                    newParams.set('sort', e.target.value);
+                    setSearchParams(newParams);
+                  }}
+                  className="bg-zinc-950 border border-zinc-800 text-[10px] font-extrabold uppercase tracking-widest py-2.5 px-4 rounded-lg outline-none focus:border-[#D4AF37] text-white cursor-pointer"
+                >
                   <option value="newest">SORT BY: NEWEST</option>
                   <option value="price-asc">PRICE: LOW TO HIGH</option>
                   <option value="price-desc">PRICE: HIGH TO LOW</option>
@@ -148,14 +174,14 @@ export function Shop() {
                 <h3 className="font-bold text-base uppercase tracking-wider mb-2">Error Connecting to Database</h3>
                 <p className="text-xs text-zinc-500">Unable to fetch products. Please ensure your Supabase connection is correctly configured in the environment variables.</p>
               </div>
-            ) : filteredProducts.length === 0 ? (
+            ) : sortedProducts.length === 0 ? (
               <div className="bg-[#080808] text-zinc-500 p-16 rounded-xl text-center border border-zinc-900">
                 <h3 className="font-extrabold text-sm uppercase tracking-widest mb-2 text-white">No Products Found</h3>
                 <p className="text-xs text-zinc-500">No products match your selected filters. Try clearing some filters.</p>
               </div>
             ) : (
               <div className={viewMode === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" : "flex flex-col gap-6"}>
-                {filteredProducts.map(product => (
+                {sortedProducts.map(product => (
                   <div key={product.id} className={viewMode === 'list' ? 'flex gap-6 items-center bg-[#080808] border border-zinc-900 rounded-2xl p-4 hover:border-[#D4AF37]/35 transition-all' : ''}>
                     {viewMode === 'list' ? (
                       <>
@@ -188,14 +214,13 @@ export function Shop() {
             )}
             
             {/* Pagination */}
-            {!isLoading && filteredProducts.length > 0 && (
+            {!isLoading && sortedProducts.length > 0 && (
               <div className="mt-16 flex justify-center">
                 <button className="px-8 py-3.5 border border-zinc-800 text-[10px] font-extrabold uppercase tracking-[0.25em] rounded-xl hover:bg-white hover:text-black hover:border-white transition-all duration-300">
                   Load More Products
                 </button>
               </div>
             )}
-
           </div>
         </div>
 

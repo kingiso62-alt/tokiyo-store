@@ -28,7 +28,7 @@ export function ProductDetails() {
   const [activeTab, setActiveTab] = useState<"details" | "specs" | "shipping">("details");
   const [addedToCart, setAddedToCart] = useState(false);
 
-  const getLocalizedDesc = (desc?: string) => {
+  const getLocalizedDesc = (desc?: string | null) => {
     if (!desc) return "";
     const parts = desc.split("---");
     if (parts.length > 1) {
