@@ -1,0 +1,14 @@
+# https://www.robotstxt.org/robotstxt.html
+User-agent: *
+Allow: /
+
+# Disallow admin panel and auth pages from search indexing
+Disallow: /admin/
+Disallow: /admin-login
+Disallow: /checkout
+Disallow: /order-success
+Disallow: /account/
+Disallow: /profile
+
+# Sitemap Location
+Sitemap: https://tokiyostore.com/sitemap.xml
