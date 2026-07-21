@@ -128,73 +128,6 @@ export function Header() {
               >
                 <span className="flex items-center gap-1">Shop</span>
                 <span className="absolute bottom-0 left-0 w-full h-[1.5px] bg-[#D4AF37] transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300" />
-
-                {/* Mega Menu Dropdown */}
-                <AnimatePresence>
-                  {showMegaMenu && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 10 }}
-                      transition={{ duration: 0.2 }}
-                      className="absolute top-full left-0 w-full bg-[#0a0a0a]/98 border-t border-zinc-900 shadow-[0_20px_50px_rgba(0,0,0,0.8)] p-8 cursor-default text-white z-50"
-                    >
-                      <div className="max-w-7xl mx-auto grid grid-cols-4 gap-8 text-left">
-                        {/* Apparel Category List */}
-                        <div>
-                          <h3 className="text-[#D4AF37] font-extrabold text-xs uppercase tracking-widest mb-4 border-b border-zinc-800 pb-2">Clothing / Dharka</h3>
-                          <ul className="space-y-2">
-                            {clothingCategories.map((c: any) => (
-                              <li key={c.slug}>
-                                <Link to={`/shop?category=${c.slug}`} className="text-zinc-400 hover:text-white transition-colors text-xs font-semibold block py-0.5 capitalize">
-                                  {c.name}
-                                </Link>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-
-                        {/* Accessories Category List */}
-                        <div>
-                          <h3 className="text-[#D4AF37] font-extrabold text-xs uppercase tracking-widest mb-4 border-b border-zinc-800 pb-2">Accessories / Agabka</h3>
-                          <ul className="space-y-2">
-                            {accessoryCategories.map((c: any) => (
-                              <li key={c.slug}>
-                                <Link to={`/shop?category=${c.slug}`} className="text-zinc-400 hover:text-white transition-colors text-xs font-semibold block py-0.5 capitalize">
-                                  {c.name}
-                                </Link>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-
-                        {/* Collections List */}
-                        <div>
-                          <h3 className="text-[#D4AF37] font-extrabold text-xs uppercase tracking-widest mb-4 border-b border-zinc-800 pb-2">Collections / Xulashada</h3>
-                          <ul className="space-y-2">
-                            {collectionsList.map((col: any) => (
-                              <li key={col.slug}>
-                                <Link to={`/shop?collection=${col.slug}`} className="text-zinc-400 hover:text-white transition-colors text-xs font-semibold block py-0.5 capitalize">
-                                  {col.name}
-                                </Link>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-
-                        {/* Image Showcase */}
-                        <div className="relative h-48 rounded-lg overflow-hidden group border border-zinc-900 shadow-md">
-                          <img src="https://images.unsplash.com/photo-1594938298603-c8148c4dae35?q=80&w=800" loading="lazy" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="Collection Showcase" />
-                          <div className="absolute inset-0 bg-black/60" />
-                          <div className="absolute inset-0 p-5 flex flex-col justify-end">
-                            <h3 className="text-white font-extrabold uppercase tracking-widest text-base mb-1">New Arrivals</h3>
-                            <Link to="/shop" className="text-[#D4AF37] text-[10px] font-extrabold uppercase tracking-wider hover:underline">Shop Latest Look</Link>
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
               </Link>
 
               <Link to="/collections" className="text-[11px] font-extrabold uppercase tracking-widest transition-colors text-zinc-300 hover:text-white relative group py-1 whitespace-nowrap">
@@ -258,6 +191,93 @@ export function Header() {
             </div>
           </div>
         </div>
+
+        {/* Mega Menu Dropdown */}
+        <AnimatePresence>
+          {showMegaMenu && (
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 15 }}
+              transition={{ duration: 0.25 }}
+              className="absolute top-full left-0 w-full bg-[#0a0a0a]/98 border-t border-zinc-900 shadow-[0_20px_50px_rgba(0,0,0,0.9)] py-10 px-8 text-white z-50"
+              onMouseEnter={() => setShowMegaMenu(true)}
+              onMouseLeave={() => setShowMegaMenu(false)}
+            >
+              <div className="max-w-7xl mx-auto grid grid-cols-4 gap-12 text-left">
+                {/* Apparel Category List */}
+                <div>
+                  <h3 className="text-[#D4AF37] font-extrabold text-[10px] uppercase tracking-[0.25em] mb-5 border-b border-zinc-800 pb-2">Clothing / Dharka</h3>
+                  <ul className="space-y-3">
+                    {clothingCategories.map((c: any) => (
+                      <li key={c.slug}>
+                        <Link 
+                          to={`/shop?category=${c.slug}`} 
+                          onClick={() => setShowMegaMenu(false)}
+                          className="text-zinc-400 hover:text-white transition-colors text-xs font-semibold block py-0.5 capitalize tracking-wide"
+                        >
+                          {c.name}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Accessories Category List */}
+                <div>
+                  <h3 className="text-[#D4AF37] font-extrabold text-[10px] uppercase tracking-[0.25em] mb-5 border-b border-zinc-800 pb-2">Accessories / Agabka</h3>
+                  <ul className="space-y-3">
+                    {accessoryCategories.map((c: any) => (
+                      <li key={c.slug}>
+                        <Link 
+                          to={`/shop?category=${c.slug}`} 
+                          onClick={() => setShowMegaMenu(false)}
+                          className="text-zinc-400 hover:text-white transition-colors text-xs font-semibold block py-0.5 capitalize tracking-wide"
+                        >
+                          {c.name}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Collections List */}
+                <div>
+                  <h3 className="text-[#D4AF37] font-extrabold text-[10px] uppercase tracking-[0.25em] mb-5 border-b border-zinc-800 pb-2">Collections / Xulashada</h3>
+                  <ul className="space-y-3">
+                    {collectionsList.map((col: any) => (
+                      <li key={col.slug}>
+                        <Link 
+                          to={`/shop?collection=${col.slug}`} 
+                          onClick={() => setShowMegaMenu(false)}
+                          className="text-zinc-400 hover:text-white transition-colors text-xs font-semibold block py-0.5 capitalize tracking-wide"
+                        >
+                          {col.name}
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Image Showcase */}
+                <div className="relative h-48 rounded-xl overflow-hidden group border border-zinc-900 shadow-md">
+                  <img src="https://images.unsplash.com/photo-1594938298603-c8148c4dae35?q=80&w=800" loading="lazy" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="Collection Showcase" />
+                  <div className="absolute inset-0 bg-black/60" />
+                  <div className="absolute inset-0 p-5 flex flex-col justify-end">
+                    <h3 className="text-white font-extrabold uppercase tracking-widest text-xs mb-1.5">New Arrivals</h3>
+                    <Link 
+                      to="/shop" 
+                      onClick={() => setShowMegaMenu(false)}
+                      className="text-[#D4AF37] text-[10px] font-extrabold uppercase tracking-wider hover:underline"
+                    >
+                      Shop Latest Look
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </header>
 
       {/* ============ MOBILE DRAWER MENU ============ */}
