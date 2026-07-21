@@ -65,6 +65,11 @@ export function AdminOrders() {
           en: `Your order #${number} has been confirmed by Tokiyo Store. Preparing package.`,
           so: `Dalabkaaga #${number} waa la xaqiijiyay. Waxaan diyaarineynaa xirmadaada.`
         };
+      case "processing":
+        return {
+          en: `Your order #${number} is currently being processed by our team.`,
+          so: `Dalabkaaga #${number} hadda ayaa la diyaarinayaa.`
+        };
       case "packed":
         return {
           en: `Your order #${number} is packed and ready for delivery.`,
@@ -74,6 +79,11 @@ export function AdminOrders() {
         return {
           en: `Your order #${number} has been shipped via ${carrier}. Tracking: ${trackingNumber || "N/A"}`,
           so: `Dalabkaaga #${number} waa la raray iyada oo la adeegsanayo ${carrier}. Tixraac: ${trackingNumber || "N/A"}`
+        };
+      case "out_for_delivery":
+        return {
+          en: `Your order #${number} is out for delivery! Our agent will contact you soon.`,
+          so: `Dalabkaaga #${number} waa soo socdaa! Wakiilkeena ayaa kula soo xiriiri doona dhowaan.`
         };
       case "delivered":
         return {
@@ -170,8 +180,8 @@ export function AdminOrders() {
       render: (row: any) => {
         let color = "bg-[#e3eaef] text-[#4d5154]"; // default gray
         if (row.status === "delivered" || row.status === "paid") color = "bg-[#47c363] text-white shadow-[0_2px_6px_rgba(71,195,99,0.2)]";
-        else if (row.status === "processing" || row.status === "shipped") color = "bg-[#3abaf4] text-white shadow-[0_2px_6px_rgba(58,186,244,0.2)]";
-        else if (row.status === "pending" || row.status === "awaiting_payment") color = "bg-[#ffa426] text-white shadow-[0_2px_6px_rgba(255,164,38,0.2)]";
+        else if (row.status === "processing" || row.status === "packed" || row.status === "shipped" || row.status === "out_for_delivery") color = "bg-[#3abaf4] text-white shadow-[0_2px_6px_rgba(58,186,244,0.2)]";
+        else if (row.status === "pending" || row.status === "awaiting_payment" || row.status === "confirmed") color = "bg-[#ffa426] text-white shadow-[0_2px_6px_rgba(255,164,38,0.2)]";
         else if (row.status === "cancelled" || row.status === "returned" || row.status === "refunded") color = "bg-[#fc544b] text-white shadow-[0_2px_6px_rgba(252,84,75,0.2)]";
         
         return (
@@ -222,8 +232,8 @@ export function AdminOrders() {
                   <div className="text-left sm:text-right">
                     <span className={`px-4 py-1.5 text-[12px] font-bold rounded-full uppercase tracking-wider inline-block
                       ${selectedOrder.status === 'delivered' ? 'bg-[#47c363] text-white shadow-[0_2px_6px_rgba(71,195,99,0.2)]' :
-                        selectedOrder.status === 'pending' ? 'bg-[#ffa426] text-white shadow-[0_2px_6px_rgba(255,164,38,0.2)]' :
-                        selectedOrder.status === 'cancelled' ? 'bg-[#fc544b] text-white shadow-[0_2px_6px_rgba(252,84,75,0.2)]' :
+                        ['pending', 'awaiting_payment', 'confirmed'].includes(selectedOrder.status) ? 'bg-[#ffa426] text-white shadow-[0_2px_6px_rgba(255,164,38,0.2)]' :
+                        ['cancelled', 'returned', 'refunded'].includes(selectedOrder.status) ? 'bg-[#fc544b] text-white shadow-[0_2px_6px_rgba(252,84,75,0.2)]' :
                         'bg-[#3abaf4] text-white shadow-[0_2px_6px_rgba(58,186,244,0.2)]'
                       }
                     `}>
@@ -333,11 +343,17 @@ export function AdminOrders() {
                   <Button onClick={() => handleUpdateStatus("confirmed")} className="bg-white text-[#6c757d] border border-[#e4e6fc] hover:border-[#6777ef] hover:text-[#6777ef] text-[13px] py-2 h-10">
                     <CheckCircle className="h-4 w-4 mr-1.5" /> Confirm
                   </Button>
+                  <Button onClick={() => handleUpdateStatus("processing")} className="bg-white text-[#6c757d] border border-[#e4e6fc] hover:border-[#ffa426] hover:text-[#ffa426] text-[13px] py-2 h-10">
+                    <Loader2 className="h-4 w-4 mr-1.5" /> Process
+                  </Button>
                   <Button onClick={() => handleUpdateStatus("packed")} className="bg-white text-[#6c757d] border border-[#e4e6fc] hover:border-[#ffa426] hover:text-[#ffa426] text-[13px] py-2 h-10">
                     <Package className="h-4 w-4 mr-1.5" /> Pack
                   </Button>
                   <Button onClick={() => handleUpdateStatus("shipped")} className="bg-[#3abaf4] text-white hover:bg-[#259cd3] shadow-[0_2px_6px_rgba(58,186,244,0.4)] text-[13px] py-2 h-10">
                     <Truck className="h-4 w-4 mr-1.5" /> Ship Order
+                  </Button>
+                  <Button onClick={() => handleUpdateStatus("out_for_delivery")} className="bg-[#3abaf4] text-white hover:bg-[#259cd3] shadow-[0_2px_6px_rgba(58,186,244,0.4)] text-[13px] py-2 h-10">
+                    <MapPin className="h-4 w-4 mr-1.5" /> Out for Delivery
                   </Button>
                   <Button onClick={() => handleUpdateStatus("delivered")} className="bg-[#47c363] text-white hover:bg-[#39a350] shadow-[0_2px_6px_rgba(71,195,99,0.4)] text-[13px] py-2 h-10">
                     <Award className="h-4 w-4 mr-1.5" /> Deliver
