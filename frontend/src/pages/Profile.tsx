@@ -272,8 +272,8 @@ export function Profile() {
             </p>
 
             <div className="flex gap-4">
-              <Button
-                variant="outline"
+              <button
+                type="button"
                 onClick={async () => {
                   if (!("Notification" in window)) {
                     alert("Notifications not supported in this browser.");
@@ -282,21 +282,30 @@ export function Profile() {
                   const perm = await Notification.requestPermission();
                   if (perm === "granted") alert("Push permissions granted successfully! / Ogeysiisyada waa la shiday.");
                 }}
-                className="flex-1 uppercase tracking-widest text-[9px] font-black h-11 border-zinc-800 hover:border-zinc-700"
+                className="flex-1 rounded-xl border border-zinc-800 bg-transparent text-zinc-300 hover:text-white hover:border-[#D4AF37] transition-all uppercase tracking-widest text-[9px] font-black h-11 cursor-pointer"
               >
                 Grant Push Permission
-              </Button>
-              <Button
+              </button>
+              <button
+                type="button"
                 onClick={() => {
-                  new Notification("Tokiyo Luxury Store", {
-                    body: "Order ORD-77826 has been shipped! / Dalabkaaga waa la soo diray.",
-                    icon: "/apple-touch-icon.png"
-                  });
+                  if (!("Notification" in window)) {
+                    alert("Notifications not supported in this browser.");
+                    return;
+                  }
+                  if (Notification.permission === "granted") {
+                    new Notification("Tokiyo Luxury Store", {
+                      body: "Order ORD-77826 has been shipped! / Dalabkaaga waa la soo diray.",
+                      icon: "/apple-touch-icon.png"
+                    });
+                  } else {
+                    alert("Order ORD-77826 has been shipped! / Dalabkaaga waa la soo diray. (Fadlan marka hore daar Permission-ka)");
+                  }
                 }}
-                className="flex-1 bg-zinc-900 text-white border border-zinc-800 hover:bg-zinc-800 uppercase tracking-widest text-[9px] font-black h-11"
+                className="flex-1 rounded-xl bg-zinc-900 text-white border border-zinc-800 hover:bg-zinc-800 hover:border-zinc-700 transition-all uppercase tracking-widest text-[9px] font-black h-11 cursor-pointer"
               >
                 Send Test Push
-              </Button>
+              </button>
             </div>
           </div>
 
