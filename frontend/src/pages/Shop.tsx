@@ -16,6 +16,11 @@ export function Shop() {
 
   const searchQuery = searchParams.get('q');
   const categoryQuery = searchParams.get('category');
+  const maxPriceQuery = Number(searchParams.get('maxPrice')) || 5000;
+  const colorQuery = searchParams.get('color');
+  const sizeQuery = searchParams.get('size');
+  const brandQuery = searchParams.get('brand');
+  const ratingQuery = Number(searchParams.get('rating')) || 0;
 
   const { data: dbProducts, isLoading, isError } = useQuery({
     queryKey: ['products'],
@@ -24,14 +29,58 @@ export function Shop() {
   });
 
   // Map DB products to the frontend Product type expected by ProductCard
-  const catalogProducts: Product[] = (dbProducts || []).map(p => ({
-    id: p.id,
-    name: p.title,
-    price: p.price,
-    image: p.images?.[0]?.image_url || "https://images.unsplash.com/photo-1593030761757-71fae45fa0e5?q=80&w=600",
-    category: p.category?.name || "Uncategorized",
-    tag: p.is_trending ? "Trending" : p.is_featured ? "Featured" : ""
-  }));
+  const catalogProducts = (dbProducts || []).map(p => {
+    const inv = p.inventory || [];
+    const sizesList = [...new Set(inv.map(i => i.size).filter(Boolean))] as string[];
+    const colorsList = [...new Set(inv.map(i => i.color).filter(Boolean))] as string[];
+    
+    return {
+      id: p.id,
+      name: p.title,
+      price: Number(p.price),
+      image: p.images?.[0]?.image_url || "https://images.unsplash.com/photo-1593030761757-71fae45fa0e5?q=80&w=600",
+      category: p.category?.name || "Uncategorized",
+      categorySlug: p.category?.slug || "",
+      brandSlug: p.brand?.slug || "",
+      rating: Number(p.rating) || 0,
+      sizes: sizesList,
+      colors: colorsList.map(c => c.toLowerCase()),
+      tag: p.is_trending ? "Trending" : p.is_featured ? "Featured" : ""
+    };
+  });
+
+  // Filter products based on URL parameters
+  const filteredProducts = catalogProducts.filter(product => {
+    // 1. Search Query
+    if (searchQuery && !product.name.toLowerCase().includes(searchQuery.toLowerCase())) {
+      return false;
+    }
+    // 2. Category
+    if (categoryQuery && product.categorySlug.toLowerCase() !== categoryQuery.toLowerCase()) {
+      return false;
+    }
+    // 3. Max Price
+    if (product.price > maxPriceQuery) {
+      return false;
+    }
+    // 4. Color
+    if (colorQuery && !product.colors.includes(colorQuery.toLowerCase())) {
+      return false;
+    }
+    // 5. Size
+    if (sizeQuery && !product.sizes.includes(sizeQuery)) {
+      return false;
+    }
+    // 6. Brand
+    if (brandQuery && product.brandSlug !== brandQuery) {
+      return false;
+    }
+    // 7. Rating
+    if (ratingQuery && product.rating < ratingQuery) {
+      return false;
+    }
+    return true;
+  });
 
   return (
     <div className="bg-[#040404] min-h-screen text-white pt-32 pb-20">
@@ -44,7 +93,7 @@ export function Shop() {
               {searchQuery ? `Search: "${searchQuery}"` : categoryQuery ? `${categoryQuery}` : 'ALL PRODUCTS'}
             </h1>
             <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest">
-              {isLoading ? "Loading..." : `Showing ${catalogProducts.length} results`}
+              {isLoading ? "Loading..." : `Showing ${filteredProducts.length} results`}
             </p>
           </div>
         </div>
@@ -99,14 +148,14 @@ export function Shop() {
                 <h3 className="font-bold text-base uppercase tracking-wider mb-2">Error Connecting to Database</h3>
                 <p className="text-xs text-zinc-500">Unable to fetch products. Please ensure your Supabase connection is correctly configured in the environment variables.</p>
               </div>
-            ) : catalogProducts.length === 0 ? (
+            ) : filteredProducts.length === 0 ? (
               <div className="bg-[#080808] text-zinc-500 p-16 rounded-xl text-center border border-zinc-900">
                 <h3 className="font-extrabold text-sm uppercase tracking-widest mb-2 text-white">No Products Found</h3>
-                <p className="text-xs text-zinc-500">Your database is currently empty. Add products via the Admin Dashboard.</p>
+                <p className="text-xs text-zinc-500">No products match your selected filters. Try clearing some filters.</p>
               </div>
             ) : (
               <div className={viewMode === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" : "flex flex-col gap-6"}>
-                {catalogProducts.map(product => (
+                {filteredProducts.map(product => (
                   <div key={product.id} className={viewMode === 'list' ? 'flex gap-6 items-center bg-[#080808] border border-zinc-900 rounded-2xl p-4 hover:border-[#D4AF37]/35 transition-all' : ''}>
                     {viewMode === 'list' ? (
                       <>
@@ -139,7 +188,7 @@ export function Shop() {
             )}
             
             {/* Pagination */}
-            {!isLoading && catalogProducts.length > 0 && (
+            {!isLoading && filteredProducts.length > 0 && (
               <div className="mt-16 flex justify-center">
                 <button className="px-8 py-3.5 border border-zinc-800 text-[10px] font-extrabold uppercase tracking-[0.25em] rounded-xl hover:bg-white hover:text-black hover:border-white transition-all duration-300">
                   Load More Products
