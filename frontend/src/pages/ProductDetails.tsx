@@ -13,6 +13,7 @@ import { AIRecommendations } from "@/components/ai/AIRecommendations";
 import { Sparkles, Heart, AlertCircle, Package } from "lucide-react";
 import { fetchProductById, addToWishlist, removeFromWishlist, fetchWishlist } from "@/lib/api";
 import type { InventoryVariant } from "@/lib/types";
+import { useTranslation } from "react-i18next";
 
 export function ProductDetails() {
   const { id } = useParams<{ id: string }>();
@@ -21,10 +22,23 @@ export function ProductDetails() {
   const addItem = useCartStore((state) => state.addItem);
   const { user } = useAuthStore();
   const { addViewedProduct } = useRecentlyViewedStore();
+  const { i18n } = useTranslation();
 
   const [selectedVariant, setSelectedVariant] = useState<InventoryVariant | null>(null);
   const [activeTab, setActiveTab] = useState<"details" | "specs" | "shipping">("details");
   const [addedToCart, setAddedToCart] = useState(false);
+
+  const getLocalizedDesc = (desc?: string) => {
+    if (!desc) return "";
+    const parts = desc.split("---");
+    if (parts.length > 1) {
+      if (i18n.language === "so" && parts[1]) {
+        return parts[1].trim();
+      }
+      return parts[0].trim();
+    }
+    return desc;
+  };
 
   // Fetch product from Supabase
   const { data: product, isLoading, isError } = useQuery({
@@ -280,7 +294,7 @@ export function ProductDetails() {
           </div>
 
           {product.description && (
-            <p className="text-muted-foreground leading-relaxed mb-10 font-light">{product.description}</p>
+            <p className="text-muted-foreground leading-relaxed mb-10 font-light">{getLocalizedDesc(product.description)}</p>
           )}
 
           {/* Color Selection */}
@@ -424,7 +438,7 @@ export function ProductDetails() {
             </div>
             <div className="py-6 text-sm text-muted-foreground leading-relaxed">
               {activeTab === "details" && (
-                <p>{product.description || "No description available."}</p>
+                <p>{getLocalizedDesc(product.description) || "No description available."}</p>
               )}
               {activeTab === "specs" && (
                 <ul className="space-y-2">
