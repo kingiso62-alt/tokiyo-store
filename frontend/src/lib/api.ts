@@ -518,6 +518,17 @@ export async function validateCoupon(code: string, orderTotal: number): Promise<
 // ADMIN: DASHBOARD ANALYTICS
 // -------------------------------------------------------
 
+export interface DashboardAnalytics {
+  totalRevenue: number;
+  totalOrders: number;
+  totalCustomers: number;
+  pendingOrders: number;
+  cancelledOrders: number;
+  completedOrders: number;
+  recentOrders: any[];
+  allOrders: any[];
+}
+
 export async function fetchDashboardAnalytics(): Promise<DashboardAnalytics> {
   const [ordersResult, customersResult] = await Promise.all([
     supabase
@@ -542,6 +553,7 @@ export async function fetchDashboardAnalytics(): Promise<DashboardAnalytics> {
     cancelledOrders: orders.filter((o) => o.status === "cancelled").length,
     completedOrders: orders.filter((o) => o.status === "delivered").length,
     recentOrders: orders.slice(0, 10),
+    allOrders: orders,
   };
 }
 

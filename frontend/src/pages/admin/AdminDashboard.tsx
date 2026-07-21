@@ -9,6 +9,7 @@ import {
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
+import { fetchDashboardAnalytics } from "@/lib/api";
 
 type ActiveSubTab = "dashboard" | "financials" | "security";
 
@@ -25,13 +26,9 @@ export function AdminDashboard() {
   const [banIp, setBanIp] = useState("");
   const [banReason, setBanReason] = useState("");
 
-  const { data: opData, isLoading, error } = useQuery({
-    queryKey: ["admin_operations_dashboard"],
-    queryFn: async () => {
-      const res = await fetch("http://localhost:5000/api/operations/dashboard");
-      if (!res.ok) throw new Error("Failed to fetch operational analytics");
-      return res.json();
-    }
+  const { data: analytics, isLoading: isAnalyticsLoading } = useQuery({
+    queryKey: ["admin_analytics"],
+    queryFn: fetchDashboardAnalytics
   });
 
   const { data: expensesData } = useQuery({
@@ -72,7 +69,7 @@ export function AdminDashboard() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin_expenses"] });
-      queryClient.invalidateQueries({ queryKey: ["admin_operations_dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["admin_analytics"] });
       setExpenseTitle(""); setExpenseAmount("");
     }
   });
@@ -108,7 +105,7 @@ export function AdminDashboard() {
 
   const deleteExpenseMutation = useMutation({
     mutationFn: async (id: string) => fetch(`http://localhost:5000/api/operations/expenses/${id}`, { method: "DELETE" }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin_expenses"] }); queryClient.invalidateQueries({ queryKey: ["admin_operations_dashboard"] }); }
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin_expenses"] }); queryClient.invalidateQueries({ queryKey: ["admin_analytics"] }); }
   });
 
   const deleteBanMutation = useMutation({
@@ -116,7 +113,7 @@ export function AdminDashboard() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin_bans"] })
   });
 
-  if (isLoading) {
+  if (isAnalyticsLoading) {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="animate-spin h-10 w-10 text-[#6777ef]" />
@@ -124,18 +121,50 @@ export function AdminDashboard() {
     );
   }
 
-  const ops = opData?.operations || {};
-  const monthReport = opData?.reports?.monthly || { revenue: 0, profit: 0, totalOrders: 0 };
+  // Calculate dynamic metrics
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+
+  const allOrders = analytics?.allOrders || [];
   
-  // Dummy chart data for RuangAdmin look
-  const chartData = [
-    { name: 'Jan', revenue: 0 }, { name: 'Feb', revenue: 10000 },
-    { name: 'Mar', revenue: 5000 }, { name: 'Apr', revenue: 15000 },
-    { name: 'May', revenue: 10000 }, { name: 'Jun', revenue: 20000 },
-    { name: 'Jul', revenue: 15000 }, { name: 'Aug', revenue: 25000 },
-    { name: 'Sep', revenue: 20000 }, { name: 'Oct', revenue: 30000 },
-    { name: 'Nov', revenue: 25000 }, { name: 'Dec', revenue: monthReport.revenue || 40000 },
-  ];
+  // Monthly Revenue (current month)
+  const currentMonthOrders = allOrders.filter(o => {
+    const d = new Date(o.created_at);
+    return d.getMonth() === currentMonth && d.getFullYear() === currentYear && o.status !== "cancelled" && o.status !== "returned";
+  });
+  
+  const currentMonthRevenue = currentMonthOrders.reduce((sum, o) => sum + (o.total || 0), 0);
+  
+  // Total expenses
+  const totalExpenses = expensesData?.reduce((s:any, e:any) => s + Number(e.amount), 0) || 0;
+  
+  // Profit
+  const netProfit = currentMonthRevenue - totalExpenses;
+
+  // Chart Data (Group revenue by month for current year)
+  const monthlyRevenueData = Array.from({ length: 12 }, (_, i) => ({
+    name: new Date(0, i).toLocaleString('default', { month: 'short' }),
+    revenue: 0
+  }));
+
+  allOrders.forEach(o => {
+    if (o.status === "cancelled" || o.status === "returned") return;
+    const d = new Date(o.created_at);
+    if (d.getFullYear() === currentYear) {
+      monthlyRevenueData[d.getMonth()].revenue += (o.total || 0);
+    }
+  });
+
+  const ops = {
+    totalUsers: analytics?.totalCustomers || 0,
+    totalVisitors: 0, // Placeholder
+    awaitingConfirmation: allOrders.filter(o => o.status === "pending" || o.status === "awaiting_payment").length,
+    needingPacking: allOrders.filter(o => o.status === "confirmed" || o.status === "processing").length,
+    cashOutstanding: allOrders
+      .filter(o => o.status !== "delivered" && o.status !== "cancelled")
+      .reduce((sum, o) => sum + (o.total || 0), 0)
+  };
 
   return (
     <div className="space-y-6">
@@ -169,9 +198,9 @@ export function AdminDashboard() {
             <div className="bg-white rounded-lg p-5 shadow-sm border border-gray-100 flex items-center justify-between">
               <div>
                 <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Earnings (Monthly)</p>
-                <h3 className="text-xl font-bold text-gray-800">${monthReport.revenue.toLocaleString()}</h3>
+                <h3 className="text-xl font-bold text-gray-800">${currentMonthRevenue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</h3>
                 <p className="text-xs text-green-500 font-medium mt-2 flex items-center">
-                  ↑ 3.48% <span className="text-gray-400 font-normal ml-1">Since last month</span>
+                  Live Data <span className="text-gray-400 font-normal ml-1">For this month</span>
                 </p>
               </div>
               <div className="bg-[#6777ef]/10 p-3 rounded-full">
@@ -181,10 +210,10 @@ export function AdminDashboard() {
 
             <div className="bg-white rounded-lg p-5 shadow-sm border border-gray-100 flex items-center justify-between">
               <div>
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Sales</p>
-                <h3 className="text-xl font-bold text-gray-800">{monthReport.totalOrders}</h3>
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Total Sales</p>
+                <h3 className="text-xl font-bold text-gray-800">{analytics?.totalOrders || 0}</h3>
                 <p className="text-xs text-green-500 font-medium mt-2 flex items-center">
-                  ↑ 12% <span className="text-gray-400 font-normal ml-1">Since last years</span>
+                  Lifetime <span className="text-gray-400 font-normal ml-1">Total orders</span>
                 </p>
               </div>
               <div className="bg-green-100 p-3 rounded-full">
@@ -226,7 +255,7 @@ export function AdminDashboard() {
               <h3 className="text-lg font-bold text-[#6777ef] mb-4">Monthly Recap Report</h3>
               <div className="h-[300px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                  <AreaChart data={monthlyRevenueData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#6777ef" stopOpacity={0.4}/>
@@ -274,18 +303,20 @@ export function AdminDashboard() {
               <h3 className="text-lg font-bold text-[#6777ef] mb-4">Financial Summary</h3>
               <div className="space-y-4">
                 <div className="flex justify-between items-center pb-3 border-b border-gray-100">
-                  <span className="text-gray-500 font-medium">Gross Revenue</span>
-                  <span className="text-gray-800 font-bold">${monthReport.revenue?.toFixed(2)}</span>
+                  <span className="text-gray-500 font-medium">Gross Revenue (This Month)</span>
+                  <span className="text-gray-800 font-bold">${currentMonthRevenue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                 </div>
                 <div className="flex justify-between items-center pb-3 border-b border-gray-100 text-red-500">
                   <span className="font-medium">Total Expenses</span>
                   <span className="font-bold">
-                    -${expensesData?.reduce((s:any, e:any) => s + Number(e.amount), 0).toFixed(2) || "0.00"}
+                    -${totalExpenses.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                   </span>
                 </div>
                 <div className="flex justify-between items-center pt-2">
                   <span className="text-gray-800 font-black text-lg">Net Profit</span>
-                  <span className="text-green-600 font-black text-xl">${monthReport.profit?.toFixed(2)}</span>
+                  <span className={`font-black text-xl ${netProfit >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                    ${netProfit.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                  </span>
                 </div>
               </div>
             </div>
