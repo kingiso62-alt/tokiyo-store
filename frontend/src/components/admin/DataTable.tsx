@@ -17,6 +17,13 @@ interface DataTableProps {
 
 export function DataTable({ columns, data, onEdit, onDelete, onBulkDelete }: DataTableProps) {
   const [selectedIds, setSelectedIds] = useState<(string | number)[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  const totalPages = Math.ceil(data.length / itemsPerPage) || 1;
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = Math.min(startIndex + itemsPerPage, data.length);
+  const currentData = data.slice(startIndex, endIndex);
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
@@ -77,7 +84,7 @@ export function DataTable({ columns, data, onEdit, onDelete, onBulkDelete }: Dat
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {data.map((row) => (
+            {currentData.map((row) => (
               <tr key={row.id} className="hover:bg-gray-50 transition-colors">
                 <td className="px-6 py-4 whitespace-nowrap">
                   <input
@@ -120,36 +127,52 @@ export function DataTable({ columns, data, onEdit, onDelete, onBulkDelete }: Dat
       </div>
 
       {/* Pagination */}
-      <div className="bg-white px-4 py-3 border-t border-gray-200 flex items-center justify-between sm:px-6">
-        <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm text-gray-700">
-              Showing <span className="font-medium">1</span> to <span className="font-medium">10</span> of <span className="font-medium">97</span> results
-            </p>
-          </div>
-          <div>
-            <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-              <button className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
-                <span className="sr-only">Previous</span>
-                <ChevronLeft className="h-5 w-5" aria-hidden="true" />
-              </button>
-              <button className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
-                1
-              </button>
-              <button className="relative inline-flex items-center px-4 py-2 border border-black bg-black text-sm font-medium text-white hover:bg-gray-900">
-                2
-              </button>
-              <button className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
-                3
-              </button>
-              <button className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
-                <span className="sr-only">Next</span>
-                <ChevronRight className="h-5 w-5" aria-hidden="true" />
-              </button>
-            </nav>
+      {data.length > 0 && (
+        <div className="bg-[#fdfdff] px-4 py-3 border-t border-[#f3f4f6] flex items-center justify-between sm:px-6">
+          <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+            <div>
+              <p className="text-[13px] text-[#6c757d]">
+                Showing <span className="font-bold text-[#191d21]">{startIndex + 1}</span> to <span className="font-bold text-[#191d21]">{endIndex}</span> of <span className="font-bold text-[#191d21]">{data.length}</span> results
+              </p>
+            </div>
+            <div>
+              <nav className="relative z-0 inline-flex rounded shadow-sm -space-x-px" aria-label="Pagination">
+                <button 
+                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1}
+                  className="relative inline-flex items-center px-2 py-1.5 rounded-l border border-[#e4e6fc] bg-white text-[13px] font-medium text-[#6c757d] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <span className="sr-only">Previous</span>
+                  <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+                </button>
+                
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`relative inline-flex items-center px-3.5 py-1.5 border text-[13px] font-medium transition-colors ${
+                      currentPage === page 
+                        ? "border-[#6777ef] bg-[#6777ef] text-white z-10 shadow-[0_2px_6px_rgba(103,119,239,0.4)]" 
+                        : "border-[#e4e6fc] bg-white text-[#6c757d] hover:bg-gray-50"
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+                
+                <button 
+                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                  disabled={currentPage === totalPages}
+                  className="relative inline-flex items-center px-2 py-1.5 rounded-r border border-[#e4e6fc] bg-white text-[13px] font-medium text-[#6c757d] hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <span className="sr-only">Next</span>
+                  <ChevronRight className="h-4 w-4" aria-hidden="true" />
+                </button>
+              </nav>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
     </div>
   );
