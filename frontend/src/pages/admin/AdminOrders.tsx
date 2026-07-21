@@ -104,16 +104,16 @@ export function AdminOrders() {
     if (!selectedOrder) return;
     try {
       const note = historyNotes.trim() || `Status updated to ${newStatus}`;
-      await updateOrderStatus(selectedOrder.id, newStatus as any);
+      const updatedOrder = await updateOrderStatus(selectedOrder.id, newStatus as any);
       await addOrderStatusHistory(selectedOrder.id, newStatus, note);
       
       const preview = generateNotificationText(newStatus, selectedOrder.order_number);
       if (preview) setNotificationPreview(preview);
 
       setHistoryNotes("");
+      setSelectedOrder(updatedOrder);
       refetchHistory();
       queryClient.invalidateQueries({ queryKey: ["admin_orders"] });
-      setSelectedOrder({ ...selectedOrder, status: newStatus });
     } catch (err: any) {
       alert("Error: " + err.message);
     }

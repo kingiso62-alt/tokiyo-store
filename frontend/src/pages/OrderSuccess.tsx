@@ -102,14 +102,12 @@ export function OrderSuccess() {
     return () => { supabase.removeChannel(channel); };
   }, [orderId, refetchOrder, refetchPayment]);
 
-  const handlePrint = () => window.print();
-
-  const handleDownloadInvoice = () => {
-    if (!order) return;
+  const generateInvoiceHTML = () => {
+    if (!order) return "";
     const addr = order.shipping_address as any;
     const items = (order.order_items || []) as any[];
 
-    const invoiceHTML = `
+    return `
 <!DOCTYPE html>
 <html>
 <head>
@@ -173,16 +171,35 @@ export function OrderSuccess() {
       <tr style="font-weight:bold; background:#f9f9f9;"><td colspan="3">Total</td><td style="text-align:right">$${Number(order.total).toFixed(2)}</td></tr>
     </tfoot>
   </table>
+  <script>window.onload = function() { window.print(); };</script>
 </body>
 </html>`;
+  };
 
+  const handleDownloadInvoice = () => {
+    if (!order) return;
+    const invoiceHTML = generateInvoiceHTML();
     const blob = new Blob([invoiceHTML], { type: "text/html" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
     a.download = `TOKIYO-Invoice-${order.order_number}.html`;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  };
+
+  const handlePrint = () => {
+    if (!order) return;
+    const invoiceHTML = generateInvoiceHTML();
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(invoiceHTML);
+      printWindow.document.close();
+    } else {
+      window.print(); // Fallback if popup blocked
+    }
   };
 
   // Proof Image Upload to Supabase Storage
@@ -708,7 +725,7 @@ export function OrderSuccess() {
             <Printer className="h-4 w-4" /> Print
           </Button>
           <Button asChild className="gap-2 rounded-xl uppercase tracking-widest text-xs h-12 px-6 bg-black text-white hover:bg-gray-900">
-            <Link to="/account/orders">
+            <Link to="/profile">
               <Clock className="h-4 w-4" /> Track All Orders
             </Link>
           </Button>
